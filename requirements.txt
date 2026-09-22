@@ -12,3 +12,9 @@ langchain-experimental==0.4.2
 sentence-transformers
 pymupdf4llm==1.27.2.3
 python-multipart==0.0.32
+
+# Forecasting tiers
+numpy
+statsmodels
+scikit-learn
+torch

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database.cosmos_client import get_container
 from routes.chat import router as chat_router
 from routes.dashboard import router as dashboard_router
+from routes.forecast import router as forecast_router
 from routes.health import router as health_router
 from routes.ingestion import router as ingestion_router
 from vectorstore.create_index import create_index
@@ -48,6 +49,7 @@ app.include_router(health_router)
 app.include_router(dashboard_router, prefix="/api", tags=["Dashboard"])
 app.include_router(ingestion_router, prefix="/api", tags=["Ingestion"])
 app.include_router(chat_router, prefix="/api", tags=["Chat"])
+app.include_router(forecast_router, prefix="/api", tags=["Forecast"])
 
 
 if __name__ == "__main__":
