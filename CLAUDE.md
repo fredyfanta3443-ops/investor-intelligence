@@ -80,16 +80,31 @@ minimum-history threshold our current data doesn't meet, so it correctly raises
 `GET /api/forecast?company=&kpi=&model=&horizon=`, surfaced on the dashboard as
 `ForecastPanel` (Recharts line chart, solid=historical / dashed=forecast).
 
-Historical data: ingested 2020-2024 10-Ks for Apple/Microsoft/Tesla (15 company-years
-in Cosmos DB) via SEC EDGAR (public, free) + headless-Chrome htm→PDF rendering, using
-the existing ingestion pipeline unmodified. **Data quality varies by company** —
-Microsoft and Tesla's extracted figures were cross-checked against real filings and
-are accurate; Apple's 2020-2021 revenue/net_income came back wrong (retrieval issue
-specific to how older Apple 10-Ks chunk/match, not yet root-caused) and were nulled
-out rather than left wrong — Apple's forecast series is thinner as a result until
-that's investigated. Known minor cleanup item: a failed-then-retried ingestion of
-2022_Apple left ~309 duplicate vector chunks in the Azure Search index (doesn't
-affect KPI data, just index storage on the free F0 tier).
+**Numeric KPI history**: all 6 numeric fields (revenue, net_income, operating_income,
+cash_flow, total_assets, total_liabilities) for 2020-2024, all 3 companies, are sourced
+from **SEC EDGAR's structured XBRL company-facts API**
+(`data.sec.gov/api/xbrl/companyfacts/CIK##########.json`), not from LLM/RAG extraction.
+This replaced an earlier PDF-extraction pass whose numbers were unreliable for Apple's
+older filings (wrong revenue/net_income for 2020-2021, retrieval issue never fully
+root-caused). The XBRL API gives the exact numbers each company reported to the SEC,
+tagged with GAAP concepts (`Revenues`/`RevenueFromContractWithCustomerExcludingAssessedTax`,
+`NetIncomeLoss`, `OperatingIncomeLoss`, `NetCashProvidedByUsedInOperatingActivities`,
+`Assets`, `Liabilities`) — no LLM involved, no ambiguity. One real gotcha worth knowing
+if this is ever redone: **the API's own `fy`/`fp` fields label which *filing* a fact
+came from, not which fiscal year it describes** (each 10-K repeats ~3 years of
+comparatives, all tagged with that filing's own `fy`) — the correct fiscal year has to
+be derived from the fact's `end` date instead. Getting this wrong silently produces
+plausible-looking but shifted-by-a-year data (caught once during this project by
+cross-checking against already-verified figures — always spot-check new data sources
+against known-good numbers before trusting them).
+
+Risk factors / growth drivers (narrative text, not in XBRL) still come from the
+original RAG/PDF pipeline and are only reliably populated where that ingestion
+succeeded — currently missing for Tesla 2024's risk factors specifically.
+
+Known minor cleanup item: a failed-then-retried PDF ingestion of 2022_Apple (from the
+now-superseded extraction pass) left ~309 duplicate vector chunks in the Azure Search
+index (doesn't affect KPI data, just index storage on the free F0 tier).
 
 ## Environment
 
