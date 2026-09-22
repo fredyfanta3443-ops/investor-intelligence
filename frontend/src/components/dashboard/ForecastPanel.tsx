@@ -162,6 +162,29 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
     return historical.length > 0 ? historical[historical.length - 1].year : null
   }, [result])
 
+  // Anchor the Y-axis to the historical range (with headroom), not the
+  // full historical+forecast range. Different models predict very
+  // different future values, so scaling the axis to include the forecast
+  // makes the *identical* historical line look like it has a different
+  // trend every time the model changes — a scale illusion, not a data
+  // change. Fixing the domain to history keeps it visually stable across
+  // models; a forecast that overshoots the padded headroom simply extends
+  // past the top of the chart rather than rescaling everything beneath it.
+  const yDomain = useMemo((): [number, number] => {
+    const historicalValues = (result?.points ?? [])
+      .filter((p) => p.kind === 'historical')
+      .map((p) => p.value)
+    if (historicalValues.length === 0) return [0, 1]
+
+    const min = Math.min(0, ...historicalValues)
+    const max = Math.max(...historicalValues)
+    // 75% headroom: generous enough that a fast-growing series (e.g.
+    // Tesla) extrapolated 3 years out by the basic/statistical tiers
+    // still fits without clipping, in the common case.
+    const padding = (max - min) * 0.75 || Math.abs(max) * 0.75 || 1
+    return [min, max + padding]
+  }, [result])
+
   if (metrics.length === 0) return null
 
   return (
@@ -252,6 +275,8 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
                     tickLine={false}
                   />
                   <YAxis
+                    domain={yDomain}
+                    allowDataOverflow
                     tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
