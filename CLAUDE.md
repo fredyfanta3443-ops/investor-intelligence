@@ -81,8 +81,12 @@ minimum-history threshold our current data doesn't meet, so it correctly raises
 `ForecastPanel` (Recharts line chart, solid=historical / dashed=forecast).
 
 **Numeric KPI history**: all 6 numeric fields (revenue, net_income, operating_income,
-cash_flow, total_assets, total_liabilities) for 2020-2024, all 3 companies, are sourced
-from **SEC EDGAR's structured XBRL company-facts API**
+cash_flow, total_assets, total_liabilities) for **2015-2024 (10 years)**, all 3
+companies (30 company-years total), are sourced from **SEC EDGAR's structured XBRL
+company-facts API**. The extra years back to 2015 (beyond the original 2020-2024
+scope) exist specifically so the deep-learning tier's 8-point minimum is actually
+reachable — all four forecasting tiers, including LSTM, now run for every
+company/KPI that has full coverage.
 (`data.sec.gov/api/xbrl/companyfacts/CIK##########.json`), not from LLM/RAG extraction.
 This replaced an earlier PDF-extraction pass whose numbers were unreliable for Apple's
 older filings (wrong revenue/net_income for 2020-2021, retrieval issue never fully
