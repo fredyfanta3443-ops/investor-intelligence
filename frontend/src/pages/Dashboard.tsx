@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { MetricsSkeleton } from '@/components/dashboard/MetricsSkeleton'
 import { CompanyCard } from '@/components/dashboard/CompanyCard'
+import { QualitativeInsights } from '@/components/dashboard/QualitativeInsights'
 import { UploadDialog } from '@/components/upload/UploadDialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -83,11 +84,15 @@ export function Dashboard() {
       )}
 
       {state.status === 'ready' && state.metrics.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {state.metrics.map((metric) => (
-            <CompanyCard key={metric.id} metric={metric} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {state.metrics.map((metric) => (
+              <CompanyCard key={metric.id} metric={metric} />
+            ))}
+          </div>
+
+          <QualitativeInsights metrics={state.metrics} />
+        </>
       )}
 
       <UploadDialog
