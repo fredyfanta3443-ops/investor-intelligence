@@ -152,4 +152,35 @@ export function askQuestion(body: ChatRequestBody): Promise<ChatResponse> {
   })
 }
 
+export type ForecastTier = 'basic' | 'statistical' | 'ml' | 'deep_learning'
+
+export interface ForecastPoint {
+  year: number
+  value: number
+  kind: 'historical' | 'forecast'
+}
+
+export interface ForecastResult {
+  company: string
+  kpi: string
+  model: ForecastTier
+  points: ForecastPoint[]
+  note: string | null
+}
+
+export function fetchForecast(params: {
+  company: string
+  kpi: string
+  model: ForecastTier
+  horizon?: number
+}): Promise<ForecastResult> {
+  const search = new URLSearchParams({
+    company: params.company,
+    kpi: params.kpi,
+    model: params.model,
+    ...(params.horizon ? { horizon: String(params.horizon) } : {}),
+  })
+  return request<ForecastResult>(`/api/forecast?${search.toString()}`)
+}
+
 export { API_URL }

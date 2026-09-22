@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { MetricsSkeleton } from '@/components/dashboard/MetricsSkeleton'
 import { CompanyCard } from '@/components/dashboard/CompanyCard'
+import { ForecastPanel } from '@/components/dashboard/ForecastPanel'
 import { QualitativeInsights } from '@/components/dashboard/QualitativeInsights'
 import { UploadDialog } from '@/components/upload/UploadDialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -92,6 +93,8 @@ export function Dashboard() {
           </div>
 
           <QualitativeInsights metrics={state.metrics} />
+
+          <ForecastPanel metrics={state.metrics} />
         </>
       )}
 
