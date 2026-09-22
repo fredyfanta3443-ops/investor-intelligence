@@ -1,5 +1,5 @@
 import { AlertCircle, TrendingUp } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CartesianGrid,
   Line,
@@ -95,12 +95,26 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Until the user explicitly picks a company, an "insufficient data" error
+  // auto-advances to the next company instead of dead-ending on whichever
+  // one happened to load first (e.g. the alphabetically-first company may
+  // simply have thinner history than the others for the default KPI).
+  const userPickedCompany = useRef(false)
+  const triedCompanies = useRef(new Set<string>())
+
   useEffect(() => {
     if (!metrics.some((m) => m.company === company)) {
       setCompany(metrics[0]?.company ?? '')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metrics])
+
+  useEffect(() => {
+    // A new KPI/tier may be satisfiable by a company already ruled out for
+    // the previous one — give auto-advance a fresh set of candidates.
+    triedCompanies.current = new Set()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kpi, tier])
 
   useEffect(() => {
     if (!company) return
@@ -115,6 +129,16 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
       })
       .catch((err) => {
         if (cancelled) return
+
+        if (!userPickedCompany.current) {
+          triedCompanies.current.add(company)
+          const next = metrics.find((m) => !triedCompanies.current.has(m.company))
+          if (next) {
+            setCompany(next.company)
+            return
+          }
+        }
+
         setError(err instanceof ApiError ? err.message : 'Could not generate a forecast.')
       })
       .finally(() => {
@@ -124,7 +148,13 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company, kpi, tier])
+
+  const handleCompanyChange = (value: string) => {
+    userPickedCompany.current = true
+    setCompany(value)
+  }
 
   const chartData = useMemo(() => (result ? buildChartData(result) : []), [result])
   const boundaryYear = useMemo(() => {
@@ -148,7 +178,7 @@ export function ForecastPanel({ metrics }: { metrics: CompanyMetric[] }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={company} onValueChange={setCompany}>
+          <Select value={company} onValueChange={handleCompanyChange}>
             <SelectTrigger size="sm" className="min-w-32">
               <SelectValue placeholder="Company" />
             </SelectTrigger>
