@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-DEFAULT_MODEL = "openai/gpt-oss-120b"
+DEFAULT_MODEL = "openai/gpt-oss-20b"
 
 
 def get_chat_model(temperature: float = 0) -> ChatGroq:
