@@ -71,7 +71,7 @@ def ingest_document(
     )
 
     metrics = extract_financial_metrics(
-        retriever=Retriever(vector_store.client),
+        retriever=Retriever(vector_store.client, embeddings=embeddings),
         company=company,
         year=int(year) if year.isdigit() else None
     )

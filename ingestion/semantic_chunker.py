@@ -35,12 +35,22 @@ def chunk_markdown(
 
     Returns:
         List of semantic chunks.
+
+    Note: the default percentile threshold (95) produces very coarse
+    chunks on dense documents like 10-Ks — some exceeded 20K characters
+    in testing, which is both too large to fit in a rate-limited LLM
+    prompt and diluted enough that vector search couldn't reliably
+    distinguish "mentions revenue" from "is the revenue table". Lowering
+    the threshold to 70 gives ~850-char chunks on average, small enough
+    that a matched chunk usually contains the actual figure, not just a
+    mention of it.
     """
     markdown_content = read_markdown(markdown_file)
 
     splitter = SemanticChunker(
         embeddings=embeddings,
-        breakpoint_threshold_type="percentile"
+        breakpoint_threshold_type="percentile",
+        breakpoint_threshold_amount=70
     )
 
     return splitter.create_documents([markdown_content])

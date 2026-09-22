@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
+from azure.search.documents.models import VectorizedQuery
 
 
 class AzureAISearchVectorStore:
@@ -55,10 +56,21 @@ class AzureAISearchVectorStore:
 
 
 class Retriever:
-    """Wrapper around the Azure Search client for retrieving relevant chunks."""
+    """
+    Wrapper around the Azure Search client for retrieving relevant chunks.
 
-    def __init__(self, client):
+    Runs a hybrid search (keyword + vector) rather than keyword-only: the
+    query is embedded and matched against content_vector, combined with
+    a plain text match against content. Vector search is what makes
+    semantic retrieval actually work — a keyword-only search on a query
+    like "income statement, balance sheet, cash flow" tends to surface
+    sections that happen to repeat those words (e.g. a table of contents)
+    rather than the sections that actually contain the numbers.
+    """
+
+    def __init__(self, client, embeddings=None):
         self.client = client
+        self.embeddings = embeddings
 
     def invoke(
         self,
@@ -80,8 +92,19 @@ class Retriever:
         if company and year:
             filter_expr = f"company eq '{company}' and year eq '{year}'"
 
+        vector_queries = None
+        if self.embeddings is not None:
+            vector_queries = [
+                VectorizedQuery(
+                    vector=self.embeddings.embed_query(query),
+                    k_nearest_neighbors=top_k,
+                    fields="content_vector"
+                )
+            ]
+
         results = self.client.search(
             search_text=query,
+            vector_queries=vector_queries,
             top=top_k,
             filter=filter_expr
         )
