@@ -45,6 +45,7 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  type,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
@@ -54,6 +55,13 @@ function Button({
 
   return (
     <Comp
+      // A native <button> with no type defaults to type="submit", which
+      // silently submits/reloads the page if the button ever ends up
+      // inside a <form> ancestor (directly, or via how a consuming
+      // component composes things) without anyone intending that.
+      // Default to "button" unless the caller explicitly wants otherwise;
+      // skip this when asChild renders something other than a button.
+      type={asChild ? type : (type ?? "button")}
       data-slot="button"
       data-variant={variant}
       data-size={size}

@@ -34,6 +34,20 @@ export function Dashboard() {
     void load()
   }, [load])
 
+  // Deleting a card updates local state directly instead of re-fetching
+  // everything. A full re-fetch takes ~3s (Cosmos DB query latency) and
+  // Dashboard swaps the entire metrics section out for a loading skeleton
+  // while that's in flight - every card, not just the deleted one, would
+  // vanish and reappear, which reads as a full page reload rather than a
+  // normal SPA update.
+  const removeMetric = useCallback((id: string) => {
+    setState((prev) =>
+      prev.status === 'ready'
+        ? { ...prev, metrics: prev.metrics.filter((m) => m.id !== id) }
+        : prev,
+    )
+  }, [])
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -88,7 +102,7 @@ export function Dashboard() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {state.metrics.map((metric) => (
-              <CompanyCard key={metric.id} metric={metric} onDeleted={() => void load()} />
+              <CompanyCard key={metric.id} metric={metric} onDeleted={() => removeMetric(metric.id)} />
             ))}
           </div>
 
