@@ -1,5 +1,3 @@
-from azure.cosmos import exceptions
-
 from database.cosmos_client import get_container
 
 # Explicit field list keeps Cosmos's internal bookkeeping fields
@@ -63,17 +61,33 @@ def get_metrics_history(company: str | None = None) -> list[dict]:
     return sorted(items, key=lambda row: (row["company"], row["year"]))
 
 
-def delete_metrics(company: str, year: str) -> bool:
+def delete_company(company: str) -> int:
     """
-    Delete a single company/year KPI record.
+    Delete every KPI record for a company (all years), not just the year
+    currently shown on the dashboard.
+
+    The dashboard only ever displays a company's *latest* year, but the
+    database can hold many years of history for forecasting. Deleting
+    only that one visible year left older years intact, so the "deleted"
+    company would silently reappear (showing its next-latest year) the
+    next time the list refreshed - confusing, and not what "delete this
+    company" implies from the UI. This clears the whole history so a
+    delete-then-re-upload actually starts from nothing.
 
     Returns:
-        True if a record was deleted, False if it didn't exist.
+        Number of records deleted.
     """
     container = get_container()
 
-    try:
-        container.delete_item(item=f"{company}_{year}", partition_key=company)
-        return True
-    except exceptions.CosmosResourceNotFoundError:
-        return False
+    items = list(
+        container.query_items(
+            query="SELECT c.id FROM c WHERE c.company = @company",
+            parameters=[{"name": "@company", "value": company}],
+            partition_key=company
+        )
+    )
+
+    for item in items:
+        container.delete_item(item=item["id"], partition_key=company)
+
+    return len(items)

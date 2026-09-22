@@ -54,33 +54,44 @@ class AzureAISearchVectorStore:
 
         print(f"Uploaded {uploaded}/{len(documents)} chunks.")
 
-    def delete_chunks(self, company: str, year: str) -> int:
+    def delete_chunks(self, company: str, year: str | None = None) -> int:
         """
-        Delete every chunk belonging to a company/year, e.g. before letting
-        a document be re-ingested from scratch — without this, re-uploading
-        the same report adds a second, duplicate set of chunks alongside
-        the old ones rather than replacing them.
+        Delete every chunk belonging to a company (optionally scoped to one
+        year), e.g. before letting a document be re-ingested from scratch —
+        without this, re-uploading the same report adds a second, duplicate
+        set of chunks alongside the old ones rather than replacing them.
+
+        Args:
+            company: Company name.
+            year: Restrict to one year. Omit to delete all of that
+                company's chunks across every year.
 
         Returns:
             Number of chunks deleted.
         """
-        results = list(
-            self.client.search(
-                search_text="*",
-                filter=f"company eq '{company}' and year eq '{year}'",
-                select=["id"],
-                top=1000
+        filter_expr = f"company eq '{company}'"
+        if year is not None:
+            filter_expr += f" and year eq '{year}'"
+
+        deleted_total = 0
+        while True:
+            results = list(
+                self.client.search(
+                    search_text="*",
+                    filter=filter_expr,
+                    select=["id"],
+                    top=1000
+                )
             )
-        )
+            if not results:
+                break
 
-        if not results:
-            return 0
+            result = self.client.delete_documents([{"id": r["id"]} for r in results])
+            deleted_total += sum(item.succeeded for item in result)
 
-        result = self.client.delete_documents([{"id": r["id"]} for r in results])
-        deleted = sum(item.succeeded for item in result)
-
-        print(f"Deleted {deleted}/{len(results)} chunks for {company} {year}.")
-        return deleted
+        scope = f"{company} {year}" if year is not None else f"{company} (all years)"
+        print(f"Deleted {deleted_total} chunks for {scope}.")
+        return deleted_total
 
 
 class Retriever:

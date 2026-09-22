@@ -73,8 +73,9 @@ export function fetchMetrics(): Promise<CompanyMetric[]> {
   return request<CompanyMetric[]>('/api/metrics')
 }
 
-export function deleteMetric(company: string, year: string): Promise<{ message: string; chunks_deleted: number }> {
-  return request(`/api/metrics/${encodeURIComponent(company)}/${encodeURIComponent(year)}`, {
+/** Deletes a company's entire KPI history (every year), not just the year shown on its card. */
+export function deleteCompany(company: string): Promise<{ message: string; records_deleted: number; chunks_deleted: number }> {
+  return request(`/api/metrics/${encodeURIComponent(company)}`, {
     method: 'DELETE',
   })
 }

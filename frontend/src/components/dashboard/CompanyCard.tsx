@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { ApiError, deleteMetric, type CompanyMetric } from '@/lib/api'
+import { ApiError, deleteCompany, type CompanyMetric } from '@/lib/api'
 import { formatMillions, formatTimestamp } from '@/lib/format'
 
 const KPI_FIELDS = [
@@ -40,8 +40,8 @@ export function CompanyCard({
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await deleteMetric(metric.company, metric.year)
-      toast.success(`Deleted ${metric.company} (FY ${metric.year})`)
+      const result = await deleteCompany(metric.company)
+      toast.success(`Deleted ${metric.company} (${result.records_deleted} year(s) of data)`)
       onDeleted()
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Failed to delete.'
@@ -81,11 +81,12 @@ export function CompanyCard({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete {metric.company} FY {metric.year}?</AlertDialogTitle>
+                <AlertDialogTitle>Delete all {metric.company} data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This removes the extracted KPIs and the underlying report chunks from
-                  the vector store for this company/year. You'll need to re-upload the
-                  report to get this data back. This can't be undone.
+                  This removes {metric.company}'s entire KPI history (every year on
+                  file, not just FY {metric.year} shown here) and its report chunks
+                  from the vector store. You'll need to re-upload reports to get this
+                  data back. This can't be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
