@@ -1,3 +1,5 @@
+from azure.cosmos import exceptions
+
 from database.cosmos_client import get_container
 
 # Explicit field list keeps Cosmos's internal bookkeeping fields
@@ -59,3 +61,19 @@ def get_metrics_history(company: str | None = None) -> list[dict]:
         )
 
     return sorted(items, key=lambda row: (row["company"], row["year"]))
+
+
+def delete_metrics(company: str, year: str) -> bool:
+    """
+    Delete a single company/year KPI record.
+
+    Returns:
+        True if a record was deleted, False if it didn't exist.
+    """
+    container = get_container()
+
+    try:
+        container.delete_item(item=f"{company}_{year}", partition_key=company)
+        return True
+    except exceptions.CosmosResourceNotFoundError:
+        return False

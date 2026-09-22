@@ -1,8 +1,22 @@
-import { Building2, Clock } from 'lucide-react'
+import { Building2, Clock, Loader2, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import type { CompanyMetric } from '@/lib/api'
+import { ApiError, deleteMetric, type CompanyMetric } from '@/lib/api'
 import { formatMillions, formatTimestamp } from '@/lib/format'
 
 const KPI_FIELDS = [
@@ -14,7 +28,29 @@ const KPI_FIELDS = [
   { key: 'total_liabilities', label: 'Total Liabilities' },
 ] as const
 
-export function CompanyCard({ metric }: { metric: CompanyMetric }) {
+export function CompanyCard({
+  metric,
+  onDeleted,
+}: {
+  metric: CompanyMetric
+  onDeleted: () => void
+}) {
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteMetric(metric.company, metric.year)
+      toast.success(`Deleted ${metric.company} (FY ${metric.year})`)
+      onDeleted()
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to delete.'
+      toast.error(message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <Card className="gap-4">
       <CardHeader className="flex flex-row items-start justify-between gap-2">
@@ -29,9 +65,41 @@ export function CompanyCard({ metric }: { metric: CompanyMetric }) {
             <p className="text-xs text-muted-foreground">Fiscal year {metric.year}</p>
           </div>
         </div>
-        <Badge variant="secondary" className="shrink-0">
-          FY {metric.year}
-        </Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Badge variant="secondary">FY {metric.year}</Badge>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-destructive"
+                disabled={deleting}
+                aria-label={`Delete ${metric.company} FY ${metric.year}`}
+              >
+                {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {metric.company} FY {metric.year}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This removes the extracted KPIs and the underlying report chunks from
+                  the vector store for this company/year. You'll need to re-upload the
+                  report to get this data back. This can't be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => void handleDelete()}
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">

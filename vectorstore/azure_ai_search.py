@@ -54,6 +54,34 @@ class AzureAISearchVectorStore:
 
         print(f"Uploaded {uploaded}/{len(documents)} chunks.")
 
+    def delete_chunks(self, company: str, year: str) -> int:
+        """
+        Delete every chunk belonging to a company/year, e.g. before letting
+        a document be re-ingested from scratch — without this, re-uploading
+        the same report adds a second, duplicate set of chunks alongside
+        the old ones rather than replacing them.
+
+        Returns:
+            Number of chunks deleted.
+        """
+        results = list(
+            self.client.search(
+                search_text="*",
+                filter=f"company eq '{company}' and year eq '{year}'",
+                select=["id"],
+                top=1000
+            )
+        )
+
+        if not results:
+            return 0
+
+        result = self.client.delete_documents([{"id": r["id"]} for r in results])
+        deleted = sum(item.succeeded for item in result)
+
+        print(f"Deleted {deleted}/{len(results)} chunks for {company} {year}.")
+        return deleted
+
 
 class Retriever:
     """

@@ -73,6 +73,12 @@ export function fetchMetrics(): Promise<CompanyMetric[]> {
   return request<CompanyMetric[]>('/api/metrics')
 }
 
+export function deleteMetric(company: string, year: string): Promise<{ message: string; chunks_deleted: number }> {
+  return request(`/api/metrics/${encodeURIComponent(company)}/${encodeURIComponent(year)}`, {
+    method: 'DELETE',
+  })
+}
+
 export interface UploadResponse {
   message: string
   file_name: string
